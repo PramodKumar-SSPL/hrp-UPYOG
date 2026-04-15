@@ -131,12 +131,12 @@ public class StorageValidator {
 
 		validateFileSize(file);
 
-		validateMimeType(file, extension);
+//		validateMimeType(file, extension);
 
-		validateRequestContentType(file, extension);
+//		validateRequestContentType(file, extension);
 
 		// advanced protection
-		fileSignatureValidator.validateSignature(file, extension);
+//		fileSignatureValidator.validateSignature(file, extension);
 	}
 
 	private void validateFileName(String fileName) {
