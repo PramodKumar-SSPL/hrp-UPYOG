@@ -298,6 +298,8 @@ export const loginRequest = async (username = null, password = null, refreshToke
     params.append("password", encryptAES(password));
   }
   refreshToken && params.append("refresh_token", refreshToken);
+  const csrfToken = generateCsrfToken();
+  params.append("_csrf", csrfToken);
   params.append("grant_type", grantType);
   params.append("scope", "read");
   params.append("tenantId", tenantId);
@@ -325,6 +327,14 @@ export const loginRequest = async (username = null, password = null, refreshToke
   }
 
   throw new Error(apiError);
+};
+
+const generateCsrfToken = () => {
+  const bytes = new Uint8Array(16); // 128-bit
+  window.crypto.getRandomValues(bytes);
+  return Array.from(bytes)
+    .map(b => b.toString(16).padStart(2, "0"))
+    .join("");
 };
 export const commonApiPost = (
   context,
