@@ -280,37 +280,54 @@ export const uploadFile = async (endPoint, module, file, ulbLevel) => {
   }
 };
 
-export const loginRequest = async (username = null, password = null, refreshToken = "", grantType = "password", tenantId = "", userType, captchaId = "", captcha = "") => {
+export const loginRequest = async (
+  username = null,
+  password = null,
+  refreshToken = "",
+  grantType = "password",
+  tenantId = "",
+  userType,
+  captchaId = "",
+  captcha = ""
+) => {
   tenantId = tenantId ? tenantId : commonConfig.tenantId;
+
+  const csrfToken = generateCsrfToken();
+
   const loginInstance = axios.create({
     baseURL: window.location.origin,
+    withCredentials: true, // important for consistency
     headers: {
       "Content-Type": "application/x-www-form-urlencoded",
       Authorization: "Basic ZWdvdi11c2VyLWNsaWVudDo=",
+      "X-CSRF-TOKEN": csrfToken,
+      "X-XSRF-TOKEN": csrfToken,
     },
   });
 
   let apiError = "Api Error";
   var params = new URLSearchParams();
+
   username && params.append("username", username);
-  // password && params.append("password", password);
+
   if (password) {
     params.append("password", encryptAES(password));
   }
+
   refreshToken && params.append("refresh_token", refreshToken);
-  const csrfToken = generateCsrfToken();
+
   params.append("_csrf", csrfToken);
+
   params.append("grant_type", grantType);
   params.append("scope", "read");
   params.append("tenantId", tenantId);
-  // params.append('captchaId', captchaId);
 
   params.append("captchaId", encryptAES(captchaId));
-
-
   params.append("captcha", encryptAES(captcha));
 
   userType && params.append("userType", userType);
+  console.log("REQUEST PARAMS:", params.toString());
+  console.log("CSRF TOKEN:", csrfToken);
 
   try {
     const response = await loginInstance.post("/user/oauth/token", params);
@@ -320,9 +337,10 @@ export const loginRequest = async (username = null, password = null, refreshToke
       return response.data;
     }
   } catch (error) {
-    const { data, status } = error.response;
+    const { data, status } = error.response || {};
     if (status === 400) {
-      apiError = (data.hasOwnProperty("error_description") && data.error_description) || apiError;
+      apiError =
+        (data && data.error_description && data.error_description) || apiError;
     }
   }
 
@@ -333,7 +351,7 @@ const generateCsrfToken = () => {
   const bytes = new Uint8Array(16); // 128-bit
   window.crypto.getRandomValues(bytes);
   return Array.from(bytes)
-    .map(b => b.toString(16).padStart(2, "0"))
+    .map((b) => b.toString(16).padStart(2, "0"))
     .join("");
 };
 export const commonApiPost = (
