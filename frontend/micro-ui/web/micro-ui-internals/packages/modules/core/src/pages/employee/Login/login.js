@@ -52,10 +52,25 @@ const Login = ({ config: propsConfig, t, isDisabled }) => {
       let redirectPath = "/digit-ui/employee"; // default redirect path
       history.replace(redirectPath);
     }
+    let token = getSessionCSRF();
+    if (!token) {
+      token = generateCSRFToken();
+      setSessionCSRF(token);
+    }
   }, [history]);
 
   const defaultCity = useMemo(() => cities?.find((c) => c.code === "hr.mch") || cities?.[0] || null, [cities]);
-
+  // CSRF Utils (Login Page Level)
+const generateCSRFToken = () => {
+  return "csrf-" + Math.random().toString(36).substring(2) + Date.now();
+};
+const getSessionCSRF = () => {
+  return sessionStorage.getItem("CSRF_TOKEN");
+};
+const setSessionCSRF = (token) => {
+  sessionStorage.setItem("CSRF_TOKEN", token);
+  document.cookie = `XSRF-TOKEN=${token}; path=/`;
+};
   const fetchCaptcha = async () => {
     try {
       const timestamp = Date.now();
@@ -157,7 +172,19 @@ const Login = ({ config: propsConfig, t, isDisabled }) => {
     delete requestData.city;
 
     try {
-      const { UserRequest: info, ...tokens } = await Digit.UserService.authenticate(requestData);
+      // Get CSRF token
+      let csrfToken = getSessionCSRF();
+      if (!csrfToken) {
+        csrfToken = generateCSRFToken();
+        setSessionCSRF(csrfToken);
+      }
+      // Attach CSRF in headers
+      const customHeaders = {
+        "X-CSRF-Token": csrfToken,
+      };
+      // Call API with headers
+      const { UserRequest: info, ...tokens } = await Digit.UserService.authenticate(requestData, customHeaders);
+     // const { UserRequest: info, ...tokens } = await Digit.UserService.authenticate(requestData);
       Digit.SessionStorage.set("Employee.tenantId", info?.tenantId);
       setUser({ info, ...tokens });
       Digit.UserService.setUser({ info, ...tokens });
